@@ -1,7 +1,7 @@
 ---
 title: Hinnangud põllumajandusliku maakasutuse mõjurite mõjule ja määramatusele
 subtitle: Küsituse tulemused
-author: Jüri
+author: Jüri Lillemets
 date: "`r format(Sys.time(), '%Y-%m-%d')`"
 output: 
   html_document:
@@ -24,10 +24,10 @@ load('vastused.Rda')
 ```
 
 ``` {r}
-Lõpuni <- apply(Alg, 1, is.na) %>% colSums %>% `<`(100)
+Lõpuni <- apply(Alg[unlist(Tulbad)], 1, is.na) %>% `!` %>% colSums %>% `>`(100)
 ```
 
-Selle ülevaate koostamise ajaks oli küsimustikku vaadanud `r nrow(Alg)` isikut ja nendest vähemalt 100 mõjuri kohda hinnangu esitanud `r sum(Lõpuni)` isikut. 
+Selle ülevaate koostamise ajaks oli küsimustikku vaadanud `r nrow(Alg)` isikut ja nendest vähemalt 100 hinnangut esitanud `r sum(Lõpuni)` isikut. 
 
 Mõjude ja määramatuse hinnangud on teisendatud vastavalt alljärgnevateks arvulisteks väärtusteks.
 
