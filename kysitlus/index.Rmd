@@ -1,0 +1,234 @@
+---
+title: Hinnangud põllumajandusliku maakasutuse mõjurite mõjule ja määramatusele
+subtitle: Küsituse tulemused
+author: Jüri
+date: "`r format(Sys.time(), '%Y-%m-%d')`"
+output: 
+  html_document:
+    theme: yeti
+editor_options:
+  chunk_output_type: console
+---
+  
+``` {r setup, include = F}
+# Settings
+knitr::opts_chunk$set(include = T, eval = T, echo = F, message = F, warning = F, 
+                      error = F,
+                      out.width = '100%')
+# Set working directory
+setwd('/home/jrl/work/maakasutus/kysitlus')
+# Load packages
+library('DT');library('plotly');library('heatmaply')
+# Load data
+load('vastused.Rda')
+```
+
+``` {r}
+Lõpuni <- apply(Alg, 1, is.na) %>% colSums %>% `<`(100)
+```
+
+Selle ülevaate koostamise ajaks oli küsimustikku vaadanud `r nrow(Alg)` isikut ja nendest vähemalt 100 mõjuri kohda hinnangu esitanud `r sum(Lõpuni)` isikut. 
+
+Mõjude ja määramatuse hinnangud on teisendatud vastavalt alljärgnevateks arvulisteks väärtusteks.
+
+``` {r}
+cbind(2:-2, 
+      c('Mõju puudub', 'Väike mõju', 'Nii ja naa', 
+             'Pigem oluline mõju', 'Oluline mõju') %>% rev, 
+       c('Arengusuunad on teada', 'Pigem on teada', 'Nii ja naa', 
+             'Pigem on määramatus', 'Arengute osas suur määramatus') %>% rev)
+```
+
+# Ülevaade vastustest
+
+## Mõju
+
+``` {r}
+datatable(Alg[Tulbad$mõju] %>% t %>% data.frame(row.names = Mõjurid), 
+          extensions = c('Buttons'),
+          options = list(dom = 'Bfrtip', buttons = c('excel'), 
+                         paging = F, searching = F,
+                         scrollCollapse = T, scrollX = T, scrollY = '500px'))
+```
+
+``` {r, out.height = '1000px'}
+plot_ly(z = Alg[Tulbad[['mõju']]] %>% as.matrix %>% t, y = Mõjurid, 
+        type = 'heatmap') %>% 
+  layout(xaxis = list(title = "Vastaja"), 
+         yaxis = list(autorange = 'reversed', autotick = F, dtick = 1))
+```
+
+## Määramatus
+
+``` {r}
+datatable(Alg[Tulbad$määramatus] %>% t %>% data.frame(row.names = Mõjurid), 
+          extensions = c('Buttons', 'FixedColumns'),
+          options = list(dom = 'Bfrtip', buttons = c('excel'), 
+                         paging = F, searching = F,
+                         scrollCollapse = T, scrollX = T, scrollY = '500px'))
+```
+
+``` {r, out.height = '1000px'}
+plot_ly(z = Alg[Tulbad[['määramatus']]] %>% as.matrix %>% t, y = Mõjurid, 
+        type = 'heatmap') %>% 
+  layout(xaxis = list(title = "Vastaja"), 
+         yaxis = list(autorange = 'reversed', autotick = F, dtick = 1))
+```
+
+<!--
+# Hajuvus
+
+## Mõju
+
+``` {r
+plot_ly(data.frame(Teema = rep(Teemad, each = nrow(Alg)), 
+                   Mõjur = rep(Mõjurid, each = nrow(Alg)), 
+                   Hinne = Alg[Tulbad[['mõju']]] %>% unlist), 
+      x = ~Hinne, y = ~Mõjur, 
+      hoverinfo = 'x', 
+      type = "box", boxmean = T, 
+      showlegend = FALSE) %>% 
+layout(yaxis = list(categoryarray = ~Hinne, categoryorder = 'array'), 
+       xaxis = list(title = 'Mõju'))
+```
+
+## Määramatus
+
+``` {r}
+plot_ly(data.frame(Teema = rep(Teemad, each = nrow(Alg)), 
+                 Mõjur = rep(Mõjurid, each = nrow(Alg)), 
+                 Hinne = Alg[Tulbad[['määramatus']]] %>% unlist), 
+      x = ~Hinne, y = ~Mõjur, 
+      hoverinfo = 'x', 
+      type = "box", boxmean = T, 
+      showlegend = FALSE) %>% 
+layout(yaxis = list(categoryarray = ~Hinne, categoryorder = 'array'), 
+       xaxis = list(title = 'Määramatus'))
+```
+-->
+
+# Mõjurite keskmised väärtused
+
+``` {r}
+k <- list(colMeans(Alg[Tulbad[['mõju']]], na.rm = T), 
+          colMeans(Alg[Tulbad[['määramatus']]], na.rm = T)) %>% 
+  lapply(scale) %>% lapply(unname)
+Tüüp <- data.frame(`Mõjus&\nmääramatu` = k[[1]] > 0 & k[[2]] > 0,
+             `Mõjus&\nteada` = k[[1]] > 0 & k[[2]] < 0,
+             `Mõjutu&\nmääramatu` = k[[1]] < 0 & k[[2]] > 0,
+             `Mõjutu&\nteada` = k[[1]] < 0 & k[[2]] < 0, 
+             check.names = F) %>% 
+  apply(., 1, function(x) names(.)[x])
+```
+
+``` {r}
+kMõju <-  colMeans(Alg[Tulbad[['mõju']]], na.rm = T)
+kMäär <-  colMeans(Alg[Tulbad[['määramatus']]], na.rm = T)
+```
+
+## Seos mõjususe määramatuse vahel
+
+``` {r}
+plot_ly(x = kMõju, 
+        y = kMäär, 
+        color = Teemad,  
+        text =  Mõjurid, 
+        type  = 'scatter', mode = 'markers', 
+        marker = list(size = 12)) %>% 
+  layout(xaxis = list(title =  "Mõju"), yaxis = list(title = "Määramatus"))
+```
+
+## Võrdlused
+
+### Suhteline mõjusus ja määramatus
+
+Keskmised väärtused on skaleeritud, st skaala keskmine on 0 ja väärtus näitab kaugust keskmisest standardhälvetes.
+
+Alloleva joonise legend iseloomustab mõjuri asukohta keskmise mõju ja määramatuse suhtes. 
+
+``` {r}
+plot_ly(x = kMõju %>% scale %>% c, 
+        y = kMäär %>% scale %>% c, 
+        color = Tüüp,  
+        text =  Mõjurid, 
+        type  = 'scatter', mode = 'markers',  
+        marker = list(size = 12)) %>% 
+  layout(xaxis = list(title =  "Mõju"), yaxis = list(title = "Määramatus"))
+```
+
+### Keskmisest mõjusamad ja määramatud mõjurid
+
+``` {r}
+Mõjurid[Tüüp == 'Mõlemad']
+```
+
+## Kõige määramatud
+
+Kuna peaegu kõiki mõjureid hinnati keskmiselt pigem oluliseks, siis võib lähtuda ka ainult määramatusest.
+
+``` {r, out.height = '1400px'}
+jrk <- kMäär %>% order
+plot_ly(x = kMäär[jrk], 
+        y = Mõjurid[jrk], 
+        color = Tüüp[jrk], 
+        type = 'bar') %>% 
+  #add_trace(x = kMäär[jrk], name = "Määramatus") %>% 
+  layout(yaxis = list(categoryarray = Mõjurid[jrk], categoryorder = 'array', 
+                      autotick = F, dtick = 1), 
+         xaxis = list(title = "Määramatus"))
+```
+
+## Mõjususe ja määramatuse summa
+
+``` {r, out.height = '1400px'}
+jrk <- (kMõju+kMäär) %>% order
+plot_ly(x = kMõju[jrk], 
+        y = Mõjurid[jrk], 
+        name = "Mõju", 
+        type = 'bar') %>% 
+  add_trace(x = kMäär[jrk], 
+            name = "Määramatus") %>% 
+    add_trace(x = (kMõju+kMäär)[jrk], 
+            name = "Mõju + \nmääramatus") %>% 
+  layout(yaxis = list(categoryarray = Mõjurid[jrk], categoryorder = 'array', 
+                      autotick = F, dtick = 1))
+```
+
+
+## Mõjurite korrelatsioonid ja klastrid mõju alusel
+
+``` {r, out.height = '1400px'}
+heatmaply(cor(Alg[Tulbad[['mõju']]] %>% setNames(Mõjurid), 
+              use = 'pairwise.complete.obs'), 
+          show_dendrogram = c(T,F), 
+          showticklabels =c(F,T), 
+          margins = c(0,50,0,50))
+```
+
+# Klasterdamine
+
+## Klastrid mõjude hinnangute alusel
+
+``` {r}
+impAlg <- Alg[Lõpuni, Tulbad[['mõju']]] %>% 
+  lapply(function(x) ifelse(is.na(x), mean(x, na.rm = T), x)) %>% data.frame
+```
+
+``` {r, out.width = NULL}
+Puu <- impAlg %>% na.omit %>% as.matrix %>% dist %>% hclust 
+plot(Puu, labels = Alg$Eesnimi[Puu$labels %>% as.numeric])
+```
+
+## Mõjurite keskmised väärtused klastrite lõikes
+
+``` {r, out.height = '1400px'}
+Klaster <- Puu %>% cutree(k = 5) %>% unname
+Keskmised <- aggregate(. ~ Klaster, impAlg, mean)
+rownames(Keskmised) <- sapply(1:5, function(x) paste(Alg$Eesnimi[Puu$labels %>% as.numeric][Klaster == x], collapse = ',\n'))
+heatmaply(Keskmised[-1] %>% setNames(Mõjurid) %>% t, 
+          show_dendrogram = c(T,F), 
+          #showticklabels =c(F,T), 
+          margins = c(0,50,0,50), 
+          labels = names(Klaster), 
+          row_side_colors = data.frame(Teema = Teemad, Tüüp = Tüüp))
+```
