@@ -6,6 +6,7 @@ date: "`r format(Sys.time(), '%Y-%m-%d')`"
 output: 
   html_document:
     theme: yeti
+    toc: true
 editor_options:
   chunk_output_type: console
 ---
@@ -18,7 +19,7 @@ knitr::opts_chunk$set(include = T, eval = T, echo = F, message = F, warning = F,
 # Set working directory
 setwd('/home/jrl/work/maakasutus/kysitlus')
 # Load packages
-library('DT');library('plotly');library('heatmaply')
+library('magrittr');library('DT');library('plotly');library('heatmaply')
 # Load data
 load('vastused.Rda')
 ```
@@ -107,7 +108,8 @@ layout(yaxis = list(categoryarray = ~Hinne, categoryorder = 'array'),
 ```
 -->
 
-# Mõjurite keskmised väärtused
+# Seos mõjususe ja määramatuse vahel
+
 
 ``` {r}
 k <- list(colMeans(Alg[Tulbad[['mõju']]], na.rm = T), 
@@ -123,34 +125,54 @@ Tüüp <- data.frame(`Mõjus&\nmääramatu` = k[[1]] > 0 & k[[2]] > 0,
 
 ``` {r}
 kMõju <-  colMeans(Alg[Tulbad[['mõju']]], na.rm = T)
+kMõjuTeema <- aggregate(kMõju, list(Teemad), mean)[[2]]
+kMõjuAlt <- Alg[Tulbad[['mõju']]] %>% lapply(`+`, 3) %>% sapply(mean, na.rm = T)
 kMäär <-  colMeans(Alg[Tulbad[['määramatus']]], na.rm = T)
+kMäärTeema <- aggregate(kMäär, list(Teemad), mean)[[2]]
+kMäärAlt <- Alg[Tulbad[['määramatus']]] %>% lapply(`+`, 3) %>% sapply(mean, na.rm = T)
 ```
 
-## Seos mõjususe määramatuse vahel
+## Mõjurite võrdluses
+
+Väärtus näitab keskmist hinnangut.
 
 ``` {r}
 plot_ly(x = kMõju, 
         y = kMäär, 
         color = Teemad,  
-        text =  Mõjurid, 
+        text =  paste0(Mõjurid, '\n', Teemad), 
         type  = 'scatter', mode = 'markers', 
         marker = list(size = 12)) %>% 
   layout(xaxis = list(title =  "Mõju"), yaxis = list(title = "Määramatus"))
 ```
 
-## Võrdlused
+## Teemade võrdluses
 
-### Suhteline mõjusus ja määramatus
+Esmalt on arvutati mõjurite keskmised ja nendest omakorda teemade keskmised.
+
+``` {r}
+plot_ly(x = kMõjuTeema, 
+        y = kMäärTeema, 
+        color = unique(Teemad),  
+        text =  unique(Teemad), 
+        type  = 'scatter', mode = 'markers', 
+        marker = list(size = 12)) %>% 
+  layout(xaxis = list(title =  "Mõju"), yaxis = list(title = "Määramatus"))
+```
+
+# Mõjurite võrdlused
+
+## Paiknemine keskmise suhtes
 
 Keskmised väärtused on skaleeritud, st skaala keskmine on 0 ja väärtus näitab kaugust keskmisest standardhälvetes.
 
-Alloleva joonise legend iseloomustab mõjuri asukohta keskmise mõju ja määramatuse suhtes. 
+Alloleva joonise legendil esitatu iseloomustab mõjuri asukohta keskmise mõju ja määramatuse suhtes. 
 
 ``` {r}
 plot_ly(x = kMõju %>% scale %>% c, 
         y = kMäär %>% scale %>% c, 
         color = Tüüp,  
-        text =  Mõjurid, 
+        text =  paste0(Mõjurid, '\n', Teemad), 
         type  = 'scatter', mode = 'markers',  
         marker = list(size = 12)) %>% 
   layout(xaxis = list(title =  "Mõju"), yaxis = list(title = "Määramatus"))
@@ -159,12 +181,10 @@ plot_ly(x = kMõju %>% scale %>% c,
 ### Keskmisest mõjusamad ja määramatud mõjurid
 
 ``` {r}
-Mõjurid[Tüüp == 'Mõlemad']
+Mõjurid[Tüüp == 'Mõjus&\nmääramatu']
 ```
 
-## Kõige määramatud
-
-Kuna peaegu kõiki mõjureid hinnati keskmiselt pigem oluliseks, siis võib lähtuda ka ainult määramatusest.
+### Kõige määramatud koos paiknemisega keskmise suhtes
 
 ``` {r, out.height = '1400px'}
 jrk <- kMäär %>% order
@@ -178,7 +198,19 @@ plot_ly(x = kMäär[jrk],
          xaxis = list(title = "Määramatus"))
 ```
 
-## Mõjususe ja määramatuse summa
+## Summa või korrutis
+
+``` {r}
+plot_ly(x = kMõju+kMäär, 
+        y = kMõjuAlt*kMäärAlt, 
+        color = Tüüp,  
+        text =  paste0(Mõjurid, '\n', Teemad), 
+        type  = 'scatter', mode = 'markers',  
+        marker = list(size = 12)) %>% 
+  layout(xaxis = list(title =  "Summa\nskaalal -2...2"), yaxis = list(title = "Korrutis\nskaalal 1..5"))
+```
+
+## Mõjude järjestus
 
 ``` {r, out.height = '1400px'}
 jrk <- (kMõju+kMäär) %>% order
@@ -188,14 +220,18 @@ plot_ly(x = kMõju[jrk],
         type = 'bar') %>% 
   add_trace(x = kMäär[jrk], 
             name = "Määramatus") %>% 
-    add_trace(x = (kMõju+kMäär)[jrk], 
-            name = "Mõju + \nmääramatus") %>% 
+  add_trace(x = (kMõju+kMäär)[jrk], 
+            name = "Mõju + \nmääramatus\nskaalal -2...2") %>% 
+  add_trace(x = (kMõjuAlt*kMäärAlt)[jrk], 
+            name = "Mõju * \nmääramatus\nskaalal 1..5") %>% 
   layout(yaxis = list(categoryarray = Mõjurid[jrk], categoryorder = 'array', 
                       autotick = F, dtick = 1))
 ```
 
 
-## Mõjurite korrelatsioonid ja klastrid mõju alusel
+# Mõjurite korrelatsioonid ja klastrid mõju alusel
+
+Järjestus põhineb mõjurite varieeruvuse sarnasusel: sarnaselt varieeruvad mõjud on teieneteise lähedal.
 
 ``` {r, out.height = '1400px'}
 heatmaply(cor(Alg[Tulbad[['mõju']]] %>% setNames(Mõjurid), 

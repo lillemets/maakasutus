@@ -27,16 +27,18 @@ Mõjurid <- sub('.*\\[(.*)\\]\\[.*', '\\1', Nimed) %>%
   substr(1, 40) %>% paste0(ifelse(nchar(.) == 40, '...', ''))
 Teemad <- sub('^.*?\\s(.*)\\s\\[.*$', '\\1', Nimed)
 
-Alg[, unlist(Tulbad)] %<>% lapply(function(x) substring(x, 2) %>% as.numeric %>% `-`(3))
+Alg[, unlist(Tulbad)] %<>% lapply(function(x) as.numeric(substring(x, 2)) - 3)
+üksViis <- Alg
+üksViis[, unlist(Tulbad)] %<>% lapply(`+`, 3) %>% data.frame
 
 ## Create and save a .xlsx workbook
 Töövihik <- cbind(
   data.frame(Teemad, Mõjurid), 
-  data.frame(Alg[Tulbad$mõju] %>% t, 
-             Alg[Tulbad$mõju] %>% colMeans(na.rm = T), 
-             Alg[Tulbad$määramatus] %>% t, 
-             Alg[Tulbad$määramatus] %>% colMeans(na.rm = T)))
-names(Töövihik) <- c('Teema', 'Mõjur', Alg$Perenimi, 'Keskmine mõju', Alg$Perenimi, 'Keskmine määramatus')
+  data.frame(üksViis[Tulbad$mõju] %>% t, 
+             üksViis[Tulbad$mõju] %>% colMeans(na.rm = T), 
+             üksViis[Tulbad$määramatus] %>% t, 
+             üksViis[Tulbad$määramatus] %>% colMeans(na.rm = T)))
+names(Töövihik) <- c('Teema', 'Mõjur', üksViis$Perenimi, 'Keskmine mõju', üksViis$Perenimi, 'Keskmine määramatus')
 write.xlsx(Töövihik, 'hinnangud.xlsx', row.names = F)
 
 ## Save .RData
