@@ -19,7 +19,10 @@ knitr::opts_chunk$set(include = T, eval = T, echo = F, message = F, warning = F,
 # Set working directory
 setwd('/home/jrl/work/maakasutus/kysitlus')
 # Load packages
-library('magrittr');library('DT');library('plotly');library('heatmaply')
+library('magrittr')
+library('DT')
+library('plotly');library('heatmaply')
+library('networkD3')
 # Load data
 load('vastused.Rda')
 ```
@@ -239,6 +242,19 @@ heatmaply(cor(Alg[Tulbad[['mõju']]] %>% setNames(Mõjurid),
           show_dendrogram = c(T,F), 
           showticklabels =c(F,T), 
           margins = c(0,50,0,50))
+```
+
+```{r, echo = F, eval = F}
+#Võrgustik
+m <- cor(Alg[Tulbad[['mõju']]] %>% setNames(Mõjurid), 
+              use = 'pairwise.complete.obs')
+diag(m) <- 0
+m <- data.frame(row=rownames(m)[row(m)], col=colnames(m)[col(m)], corr=c(m))
+m <- m[m$corr > .5, ]
+simpleNetwork(m, fontSize = 10, fontFamily = 'RobotoCondensed', 
+                         nodeColour = 'black', 
+                         opacity = 0.8, zoom = T) %>% 
+  saveNetwork('network.html', selfcontained = TRUE)
 ```
 
 # Klasterdamine
