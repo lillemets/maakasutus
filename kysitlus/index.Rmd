@@ -267,7 +267,7 @@ impAlg <- Alg[Lõpuni, Tulbad[['mõju']]] %>%
 ```
 
 ``` {r, out.width = NULL}
-Puu <- impAlg %>% na.omit %>% as.matrix %>% dist %>% hclust 
+Puu <- impAlg %>% na.omit %>% as.matrix %>% dist %>% hclust(method = 'ward.D')
 plot(Puu, labels = Alg$Eesnimi[Puu$labels %>% as.numeric])
 ```
 
