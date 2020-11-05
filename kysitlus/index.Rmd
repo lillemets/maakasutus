@@ -23,7 +23,8 @@ library('magrittr')
 library('DT')
 library('plotly');library('heatmaply')
 library('networkD3')
-# Load data
+# Source and load data
+source('korrasta.R')
 load('vastused.Rda')
 ```
 
