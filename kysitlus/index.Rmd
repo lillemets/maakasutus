@@ -23,13 +23,19 @@ library('magrittr')
 library('DT')
 library('plotly');library('heatmaply')
 library('networkD3')
+library('psych')
 # Source and load data
 source('korrasta.R')
 load('vastused.Rda')
-```
-
-``` {r}
+# Other
 Lõpuni <- apply(Alg[unlist(Tulbad)], 1, is.na) %>% `!` %>% colSums %>% `>`(100)
+Nimeta <- function(x) {
+  setNames(x, 
+           names(x) %>% 
+             sub('.*\\[(.*)\\]\\[.*', '\\1', .) %>% 
+             #lapply(strwrap, 50) %>% sapply(paste,  collapse = '\n')
+             substr(1, 36) %>% paste0(ifelse(nchar(.) == 36, '...', '')))
+}
 ```
 
 Selle ülevaate koostamise ajaks oli küsimustikku vaadanud `r nrow(Alg)` isikut ja nendest vähemalt 100 hinnangut esitanud `r sum(Lõpuni)` isikut. 
@@ -190,7 +196,7 @@ Mõjurid[Tüüp == 'Mõjus&\nmääramatu']
 
 ### Kõige määramatud koos paiknemisega keskmise suhtes
 
-``` {r, out.height = '1400px'}
+``` {r, out.height = '1400px', eval = F}
 jrk <- kMäär %>% order
 plot_ly(x = kMäär[jrk], 
         y = Mõjurid[jrk], 
@@ -216,7 +222,7 @@ plot_ly(x = kMõju+kMäär,
 
 ## Mõjude järjestus
 
-``` {r, out.height = '1400px'}
+``` {r, out.height = '1400px', eval = F}
 jrk <- (kMõju+kMäär) %>% order
 plot_ly(x = kMõju[jrk], 
         y = Mõjurid[jrk], 
@@ -235,7 +241,7 @@ plot_ly(x = kMõju[jrk],
 
 # Mõjurite korrelatsioonid ja klastrid mõju alusel
 
-Järjestus põhineb mõjurite varieeruvuse sarnasusel: sarnaselt varieeruvad mõjud on teieneteise lähedal.
+Järjestus põhineb mõjurite varieeruvuse sarnasusel: sarnaselt varieeruvad mõjurid on teieneteise lähedal.
 
 ``` {r, out.height = '1400px'}
 heatmaply(cor(Alg[Tulbad[['mõju']]] %>% setNames(Mõjurid), 
@@ -245,7 +251,7 @@ heatmaply(cor(Alg[Tulbad[['mõju']]] %>% setNames(Mõjurid),
           margins = c(0,50,0,50))
 ```
 
-```{r, echo = F, eval = F}
+```{r, echo = F}
 #Võrgustik
 m <- cor(Alg[Tulbad[['mõju']]] %>% setNames(Mõjurid), 
               use = 'pairwise.complete.obs')
@@ -269,7 +275,7 @@ impAlg <- Alg[Lõpuni, Tulbad[['mõju']]] %>%
 
 ``` {r, out.width = NULL}
 Puu <- impAlg %>% na.omit %>% as.matrix %>% dist %>% hclust(method = 'ward.D')
-plot(Puu, labels = Alg$Eesnimi[Puu$labels %>% as.numeric])
+plot(Puu, labels = Alg$Eesnimi[Puu$labels %>% as.numeric], cex = .8)
 ```
 
 ## Mõjurite keskmised väärtused klastrite lõikes
@@ -279,6 +285,48 @@ Klaster <- Puu %>% cutree(k = 5) %>% unname
 Keskmised <- aggregate(. ~ Klaster, impAlg, mean)
 rownames(Keskmised) <- sapply(1:5, function(x) paste(Alg$Eesnimi[Puu$labels %>% as.numeric][Klaster == x], collapse = ',\n'))
 heatmaply(Keskmised[-1] %>% setNames(Mõjurid) %>% t, 
+          show_dendrogram = c(T,F), 
+          #showticklabels =c(F,T), 
+          margins = c(0,50,0,50), 
+          labels = names(Klaster), 
+          row_side_colors = data.frame(Teema = Teemad, Tüüp = Tüüp))
+```
+
+## Peakomponentide analüüs
+
+Olulisuse ja määramatuse puhul on leitud neli komponenti.
+
+### Olulisus
+
+``` {r}
+#fa.parallel(Alg[, Tulbad$mõju])
+pKom <- principal(Alg[, Tulbad$mõju] %>% Nimeta, nfactors = 5, rotate = 'none')
+pKom
+```
+
+Komponentide laadungid joonisena.
+
+``` {r, out.height = '1400px'}
+heatmaply(loadings(pKom), 
+          show_dendrogram = c(T,F), 
+          #showticklabels =c(F,T), 
+          margins = c(0,50,0,50), 
+          labels = names(Klaster), 
+          row_side_colors = data.frame(Teema = Teemad, Tüüp = Tüüp))
+```
+
+### Määramatus
+
+``` {r}
+#fa.parallel(Alg[, Tulbad$määramatus])
+pKom <- principal(Alg[, Tulbad$määramatus] %>% Nimeta, nfactors = 5, rotate = 'none')
+pKom
+```
+
+Komponentide laadungid joonisena.
+
+``` {r, out.height = '1400px'}
+heatmaply(loadings(pKom), 
           show_dendrogram = c(T,F), 
           #showticklabels =c(F,T), 
           margins = c(0,50,0,50), 
