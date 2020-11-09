@@ -16,6 +16,7 @@ editor_options:
 knitr::opts_chunk$set(include = T, eval = T, echo = F, message = F, warning = F, 
                       error = F,
                       out.width = '100%')
+options(width = 100)
 # Set working directory
 setwd('/home/jrl/work/maakasutus/kysitlus')
 # Load packages
